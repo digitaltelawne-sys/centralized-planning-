@@ -1,4 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
+import { useAuth } from "../authContext";
+import { auth } from "../firebase";
+import { useNavigate } from "react-router-dom";
 
 // ─── DATA FROM EXCEL ──────────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -177,12 +180,13 @@ function computePlanDates(poDate, category) {
   return dates;
 }
 
+// UPDATED: merge computed plan with any excelPlanDates overrides
 function getPlanDates(order) {
+  const computed = computePlanDates(order.poDate, order.category);
   if (order.excelPlanDates && Object.keys(order.excelPlanDates).length > 0) {
-    const ep = order.excelPlanDates;
-    return { PO: order.poDate, OA: ep.P3 || "", MFC: ep.P16 || "", BOM: ep.P18 || "", MDCC: ep.P28 || "", RFD: ep.P31 || "", ...ep };
+    return { ...computed, ...order.excelPlanDates };
   }
-  return computePlanDates(order.poDate, order.category);
+  return computed;
 }
 
 const DEPT_COLORS = {
@@ -262,7 +266,11 @@ const T = {
 };
 
 export default function App() {
-  const [role, setRole] = useState("admin");
+  const { user, role } = useAuth();
+  console.log("Current user role:", role);
+
+  const navigate = useNavigate();
+
   const [view, setView] = useState("dashboard");
   const [orders, setOrders] = useState(SAMPLE_ORDERS);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -304,6 +312,7 @@ export default function App() {
   }, [ordersWithDates, today]);
 
   const myDepts = ROLES[role]?.depts || [];
+
   const filteredOrders = useMemo(() => ordersWithDates.filter(o => {
     if (filterStatus !== "All" && o.status !== filterStatus) return false;
     if (searchQ && !o.customer.toLowerCase().includes(searchQ.toLowerCase()) &&
@@ -328,6 +337,37 @@ export default function App() {
       ? { ...o, actuals: { ...o.actuals, [stageId]: date } } : o));
   }
 
+  // NEW: update plan date for P17 and shift subsequent stages
+  function updatePlan(orderId, stageId, newDate) {
+    if (stageId !== "P17") return; // we only handle P17 for now
+    setOrders(prevOrders => prevOrders.map(order => {
+      if (order.id !== orderId) return order;
+
+      const originalPlan = computePlanDates(order.poDate, order.category);
+      const originalP17 = originalPlan.P17;
+      if (!originalP17) return order;
+
+      const delta = daysDiff(originalP17, newDate); // positive if new is later
+      if (delta === 0) return order; // no change
+
+      const updatedExcel = { ...(order.excelPlanDates || {}) };
+      updatedExcel[stageId] = newDate;
+
+      // Find index of P18
+      const startIdx = STAGES.findIndex(s => s.id === "P18");
+      if (startIdx !== -1) {
+        STAGES.slice(startIdx).forEach(s => {
+          const originalDate = originalPlan[s.id];
+          if (originalDate) {
+            updatedExcel[s.id] = addDays(originalDate, delta);
+          }
+        });
+      }
+
+      return { ...order, excelPlanDates: updatedExcel };
+    }));
+  }
+
   const statusStyle = {
     "WIP":       { bg: "#dbeafe", color: "#1d4ed8" },
     "New":       { bg: "#dcfce7", color: "#15803d" },
@@ -350,13 +390,21 @@ export default function App() {
     rfd: "RFD-Based Tracking", department: "Department View"
   };
 
-  // shared input style
   const inputStyle = {
     background: T.inputBg, border: `1px solid ${T.border}`,
     color: T.textPrimary, padding: "9px 12px", borderRadius: 8,
     fontSize: 13, outline: "none", width: "100%", boxSizing: "border-box"
   };
   const selectStyle = { ...inputStyle, cursor: "pointer" };
+
+  async function handleLogout() {
+    try {
+      await auth.signOut();
+      navigate("/login", { replace: true });
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: T.pageBg, color: T.textPrimary, fontFamily: "'Segoe UI', 'Helvetica Neue', Arial, sans-serif", display: "flex" }}>
@@ -372,14 +420,22 @@ export default function App() {
             </div>
           </div>
         </div>
-        {/* Role */}
+
+        {/* User Info */}
         <div style={{ padding: "14px 16px", borderBottom: `1px solid ${T.border}` }}>
           <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 5, letterSpacing: "0.08em", fontWeight: 600 }}>LOGGED IN AS</div>
-          <select value={role} onChange={e => setRole(e.target.value)} style={{ ...selectStyle, fontSize: 13 }}>
-            {Object.entries(ROLES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-          </select>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 28, height: 28, background: T.brandLight, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", color: T.brand, fontWeight: 700 }}>
+              {user?.email?.[0].toUpperCase()}
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: T.textPrimary }}>{user?.email}</div>
+              <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>{ROLES[role]?.label || role}</div>
+            </div>
+          </div>
         </div>
-        {/* Nav */}
+
+        {/* Navigation */}
         <nav style={{ flex: 1, padding: "10px 8px" }}>
           {navItems.map(item => (
             <button key={item.id} onClick={() => { setView(item.id); setSelectedOrder(null); }}
@@ -394,10 +450,20 @@ export default function App() {
             </button>
           ))}
         </nav>
-        <div style={{ padding: "0 12px" }}>
+
+        {/* New Order button */}
+        <div style={{ padding: "0 12px", marginBottom: "10px" }}>
           <button onClick={() => setShowNewOrder(true)}
             style={{ width: "100%", padding: "10px", background: T.brand, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", letterSpacing: "0.02em" }}>
             + New Order
+          </button>
+        </div>
+
+        {/* Logout button */}
+        <div style={{ padding: "0 12px" }}>
+          <button onClick={handleLogout}
+            style={{ width: "100%", padding: "10px", background: "transparent", border: `1px solid ${T.border}`, color: T.textSecondary, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <span>🚪</span> Logout
           </button>
         </div>
       </div>
@@ -596,8 +662,15 @@ export default function App() {
                   </div>
                 </div>
               ) : (
-                <WorkflowView order={selectedOrder} onBack={() => setSelectedOrder(null)}
-                  myDepts={myDepts} role={role} today={today} onUpdateActual={updateActual} />
+                <WorkflowView
+                  order={selectedOrder}
+                  onBack={() => setSelectedOrder(null)}
+                  myDepts={myDepts}
+                  role={role}
+                  today={today}
+                  onUpdateActual={updateActual}
+                  onUpdatePlan={updatePlan}   // NEW prop
+                />
               )}
             </div>
           )}
@@ -795,10 +868,13 @@ export default function App() {
   );
 }
 
-// ─── WORKFLOW VIEW ────────────────────────────────────────────────────────────
-function WorkflowView({ order, onBack, myDepts, role, today, onUpdateActual }) {
-  const [editing, setEditing] = useState(null);
-  const [dateVal, setDateVal] = useState("");
+// ─── WORKFLOW VIEW (updated) ──────────────────────────────────────────────────
+function WorkflowView({ order, onBack, myDepts, role, today, onUpdateActual, onUpdatePlan }) {
+  const [editingActual, setEditingActual] = useState(null);
+  const [actualDateVal, setActualDateVal] = useState("");
+  const [editingPlan, setEditingPlan] = useState(null);       // for plan editing
+  const [planDateVal, setPlanDateVal] = useState("");
+
   const canEdit = (dept) => role === "admin" || myDepts.includes(dept);
 
   const completedCount = STAGES.filter(s => order.actuals[s.id]).length;
@@ -877,29 +953,69 @@ function WorkflowView({ order, onBack, myDepts, role, today, onUpdateActual }) {
               const done = !!actual;
               const editable = canEdit(s.dept);
               const dc = DEPT_COLORS[s.dept] || "#6b7280";
+
               return (
                 <tr key={s.id} style={{ borderBottom: `1px solid ${T.border}`,
                   background: done ? "#f0fdf4" : isOverdue ? "#fff5f5" : i % 2 === 0 ? T.tableRow : T.tableRowAlt }}>
+                  
                   <td style={{ padding: "9px 14px", fontWeight: 700, color: T.textMuted, fontSize: 12 }}>{s.id}</td>
                   <td style={{ padding: "9px 14px" }}>
                     <span style={{ background: `${dc}15`, color: dc, padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600 }}>{s.dept}</span>
                   </td>
                   <td style={{ padding: "9px 14px", fontWeight: 500 }}>{s.label}</td>
-                  <td style={{ padding: "9px 14px", color: planDate ? T.textSecondary : T.textMuted }}>{planDate || "—"}</td>
+
+                  {/* Plan Date column – now editable for P17 */}
+                  <td style={{ padding: "9px 14px", color: planDate ? T.textSecondary : T.textMuted }}>
+                    {planDate || "—"}
+                    {editable && s.id === "P17" && editingPlan !== s.id && (
+                      <button
+                        onClick={() => { setEditingPlan(s.id); setPlanDateVal(planDate || ""); }}
+                        style={{ marginLeft: 8, background: T.brandLight, border: "none", color: T.brand, padding: "2px 6px", borderRadius: 4, cursor: "pointer", fontSize: 10 }}
+                        title="Edit plan date"
+                      >
+                        ✎
+                      </button>
+                    )}
+                    {editingPlan === s.id && (
+                      <div style={{ display: "inline-flex", gap: 4, marginLeft: 8 }}>
+                        <input
+                          type="date"
+                          value={planDateVal}
+                          onChange={e => setPlanDateVal(e.target.value)}
+                          style={{ width: 130, background: T.inputBg, border: `1px solid ${T.brand}`, color: T.textPrimary, padding: "2px 4px", borderRadius: 4, fontSize: 11 }}
+                        />
+                        <button
+                          onClick={() => { onUpdatePlan(order.id, s.id, planDateVal); setEditingPlan(null); }}
+                          style={{ background: T.success, border: "none", color: "#fff", padding: "2px 6px", borderRadius: 4, cursor: "pointer", fontSize: 10 }}
+                        >
+                          ✓
+                        </button>
+                        <button
+                          onClick={() => setEditingPlan(null)}
+                          style={{ background: T.cardAlt, border: `1px solid ${T.border}`, color: T.textSecondary, padding: "2px 6px", borderRadius: 4, cursor: "pointer", fontSize: 10 }}
+                        >
+                          ✗
+                        </button>
+                      </div>
+                    )}
+                  </td>
+
+                  {/* Actual Date column */}
                   <td style={{ padding: "9px 14px" }}>
-                    {editing === s.id ? (
+                    {editingActual === s.id ? (
                       <div style={{ display: "flex", gap: 6 }}>
-                        <input type="date" value={dateVal} onChange={e => setDateVal(e.target.value)}
+                        <input type="date" value={actualDateVal} onChange={e => setActualDateVal(e.target.value)}
                           style={{ background: T.inputBg, border: `1px solid ${T.brand}`, color: T.textPrimary, padding: "4px 8px", borderRadius: 6, fontSize: 12 }} />
-                        <button onClick={() => { onUpdateActual(order.id, s.id, dateVal); setEditing(null); }}
+                        <button onClick={() => { onUpdateActual(order.id, s.id, actualDateVal); setEditingActual(null); }}
                           style={{ background: T.success, border: "none", color: "#fff", padding: "4px 10px", borderRadius: 5, cursor: "pointer", fontSize: 12, fontWeight: 700 }}>✓</button>
-                        <button onClick={() => setEditing(null)}
+                        <button onClick={() => setEditingActual(null)}
                           style={{ background: T.cardAlt, border: `1px solid ${T.border}`, color: T.textSecondary, padding: "4px 10px", borderRadius: 5, cursor: "pointer", fontSize: 12 }}>✗</button>
                       </div>
                     ) : (
                       <span style={{ color: done ? T.success : T.textMuted, fontWeight: done ? 600 : 400 }}>{actual || "Pending"}</span>
                     )}
                   </td>
+
                   <td style={{ padding: "9px 14px" }}>
                     {diff !== null && (
                       <span style={{ color: diff > 0 ? T.danger : diff < 0 ? T.success : T.textMuted, fontWeight: 700, fontSize: 12 }}>
@@ -907,6 +1023,7 @@ function WorkflowView({ order, onBack, myDepts, role, today, onUpdateActual }) {
                       </span>
                     )}
                   </td>
+
                   <td style={{ padding: "9px 14px" }}>
                     {done
                       ? <span style={{ color: T.success, fontSize: 11, fontWeight: 700, background: T.successBg, padding: "2px 8px", borderRadius: 20 }}>✅ DONE</span>
@@ -916,15 +1033,16 @@ function WorkflowView({ order, onBack, myDepts, role, today, onUpdateActual }) {
                           ? <span style={{ color: T.warning, fontSize: 11, fontWeight: 700, background: T.warningBg, padding: "2px 8px", borderRadius: 20 }}>🕐 PENDING</span>
                           : <span style={{ color: T.textMuted, fontSize: 11 }}>—</span>}
                   </td>
+
                   <td style={{ padding: "9px 14px" }}>
                     {editable && !done && (
-                      <button onClick={() => { setEditing(s.id); setDateVal(today); }}
+                      <button onClick={() => { setEditingActual(s.id); setActualDateVal(today); }}
                         style={{ background: T.brandLight, border: "none", color: T.brand, padding: "4px 12px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
                         Enter Actual
                       </button>
                     )}
                     {done && editable && (
-                      <button onClick={() => { setEditing(s.id); setDateVal(actual); }}
+                      <button onClick={() => { setEditingActual(s.id); setActualDateVal(actual); }}
                         style={{ background: T.cardAlt, border: `1px solid ${T.borderMid}`, color: T.textSecondary, padding: "4px 12px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
                         Edit
                       </button>
