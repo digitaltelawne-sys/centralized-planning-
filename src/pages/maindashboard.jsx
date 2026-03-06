@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "../authContext";
 import { auth } from "../firebase";
 import { useNavigate } from "react-router-dom";
+import NewOrderModal from "./planer/orderform";
 
 // ─── DATA FROM EXCEL ──────────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -206,8 +207,8 @@ const DEPT_COLORS = {
 };
 
 const ROLES = {
-  admin: { label: "Admin", depts: Object.keys(DEPT_COLORS) },
-  planner: { label: "Planner", depts: ["Planner", "Planning"] },
+  admin: { label: "Planner(Admin)", depts: Object.keys(DEPT_COLORS) },
+  // planner: { label: "Planner", depts: ["Planner", "Planning"] },
   sales: { label: "Sales", depts: ["Sales", "Finance & Sales"] },
   design: { label: "Design", depts: ["Design"] },
   purchase: { label: "Purchase", depts: ["Purchase"] },
@@ -321,8 +322,7 @@ export default function App() {
     return true;
   }), [ordersWithDates, filterStatus, searchQ]);
 
-  const myAlerts = role === "admin" ? alerts : alerts.filter(a => myDepts.includes(a.dept));
-
+const myAlerts = alerts.filter(a => myDepts.includes(a.dept));
   const stats = useMemo(() => ({
     total: orders.length,
     wip: orders.filter(o => o.status === "WIP").length,
@@ -1061,83 +1061,83 @@ function WorkflowView({ order, onBack, myDepts, role, today, onUpdateActual, onU
 }
 
 // ─── NEW ORDER MODAL ──────────────────────────────────────────────────────────
-function NewOrderModal({ onClose, onSave }) {
-  const [form, setForm] = useState({
-    mode: "PO", customer: "", poDate: new Date().toISOString().split("T")[0],
-    type: "Domestic", region: "West", project: "", site: "",
-    productType: "", category: "IDT-RPT-STD-3W", rating: "",
-    voltage: "", paymentTerms: "", ldAppl: false, custDOD: "",
-    desiredDOD: "", soNo: "", unitRate: "", plant: "", status: "New",
-  });
-  function set(k, v) { setForm(p => ({ ...p, [k]: v })); }
+// function NewOrderModal({ onClose, onSave }) {
+//   const [form, setForm] = useState({
+//     mode: "PO", customer: "", poDate: new Date().toISOString().split("T")[0],
+//     type: "Domestic", region: "West", project: "", site: "",
+//     productType: "", category: "IDT-RPT-STD-3W", rating: "",
+//     voltage: "", paymentTerms: "", ldAppl: false, custDOD: "",
+//     desiredDOD: "", soNo: "", unitRate: "", plant: "", status: "New",
+//   });
+//   function set(k, v) { setForm(p => ({ ...p, [k]: v })); }
 
-  const inputStyle = {
-    width: "100%", background: T.inputBg, border: `1px solid ${T.border}`,
-    color: T.textPrimary, padding: "9px 11px", borderRadius: 8,
-    fontSize: 13, boxSizing: "border-box", outline: "none"
-  };
+//   const inputStyle = {
+//     width: "100%", background: T.inputBg, border: `1px solid ${T.border}`,
+//     color: T.textPrimary, padding: "9px 11px", borderRadius: 8,
+//     fontSize: 13, boxSizing: "border-box", outline: "none"
+//   };
 
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.4)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, width: 720, maxHeight: "88vh", overflow: "auto", padding: 30, boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-          <div style={{ fontSize: 18, fontWeight: 800, color: T.textPrimary }}>Create New Order</div>
-          <button onClick={onClose} style={{ background: T.cardAlt, border: `1px solid ${T.border}`, color: T.textSecondary, cursor: "pointer", width: 32, height: 32, borderRadius: 8, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          {[
-            ["Customer Name", "customer", "text"],
-            ["Mode", "mode", "select", ["PO", "LOI", "FOA"]],
-            ["PO Date", "poDate", "date"],
-            ["Status", "status", "select", ["New", "WIP", "Delayed"]],
-            ["Type", "type", "select", ["Domestic", "Export"]],
-            ["Region", "region", "select", ["West", "North", "South", "East"]],
-            ["Project", "project", "text"],
-            ["Project Site", "site", "text"],
-            ["Product Type", "productType", "text"],
-            ["Rating (KVA)", "rating", "text"],
-            ["Voltage Ratio", "voltage", "text"],
-            ["Payment Terms", "paymentTerms", "text"],
-            ["Customer DOD", "custDOD", "date"],
-            ["Desired DOD", "desiredDOD", "date"],
-            ["SO Number", "soNo", "text"],
-            ["Unit Rate (₹)", "unitRate", "number"],
-            ["Plant", "plant", "text"],
-          ].map(([label, key, type, options]) => (
-            <div key={key}>
-              <label style={{ fontSize: 11, color: T.textMuted, display: "block", marginBottom: 5, fontWeight: 600, letterSpacing: "0.05em" }}>{label.toUpperCase()}</label>
-              {type === "select" ? (
-                <select value={form[key]} onChange={e => set(key, e.target.value)} style={inputStyle}>
-                  {options.map(o => <option key={o}>{o}</option>)}
-                </select>
-              ) : (
-                <input type={type} value={form[key]} onChange={e => set(key, e.target.value)} style={inputStyle} />
-              )}
-            </div>
-          ))}
-          <div style={{ gridColumn: "1/-1" }}>
-            <label style={{ fontSize: 11, color: T.textMuted, display: "block", marginBottom: 5, fontWeight: 600, letterSpacing: "0.05em" }}>PRODUCT CATEGORY</label>
-            <select value={form.category} onChange={e => set("category", e.target.value)} style={inputStyle}>
-              {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.id} — {c.name}</option>)}
-            </select>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <input type="checkbox" id="ld" checked={form.ldAppl} onChange={e => set("ldAppl", e.target.checked)}
-              style={{ width: 16, height: 16, cursor: "pointer" }} />
-            <label htmlFor="ld" style={{ fontSize: 13, cursor: "pointer", fontWeight: 500 }}>LD Applicable</label>
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 12, marginTop: 26, justifyContent: "flex-end" }}>
-          <button onClick={onClose}
-            style={{ padding: "10px 24px", background: T.cardAlt, border: `1px solid ${T.border}`, color: T.textSecondary, borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13 }}>
-            Cancel
-          </button>
-          <button onClick={() => { if (form.customer && form.poDate && form.custDOD) onSave(form); }}
-            style={{ padding: "10px 28px", background: T.brand, border: "none", color: "#fff", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
-            Create Order & Generate Plan
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+//   return (
+//     <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.4)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}>
+//       <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, width: 720, maxHeight: "88vh", overflow: "auto", padding: 30, boxShadow: "0 20px 60px rgba(0,0,0,0.15)" }}>
+//         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+//           <div style={{ fontSize: 18, fontWeight: 800, color: T.textPrimary }}>Create New Order</div>
+//           <button onClick={onClose} style={{ background: T.cardAlt, border: `1px solid ${T.border}`, color: T.textSecondary, cursor: "pointer", width: 32, height: 32, borderRadius: 8, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+//         </div>
+//         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+//           {[
+//             ["Customer Name", "customer", "text"],
+//             ["Mode", "mode", "select", ["PO", "LOI", "FOA"]],
+//             ["PO Date", "poDate", "date"],
+//             ["Status", "status", "select", ["New", "WIP", "Delayed"]],
+//             ["Type", "type", "select", ["Domestic", "Export"]],
+//             ["Region", "region", "select", ["West", "North", "South", "East"]],
+//             ["Project", "project", "text"],
+//             ["Project Site", "site", "text"],
+//             ["Product Type", "productType", "text"],
+//             ["Rating (KVA)", "rating", "text"],
+//             ["Voltage Ratio", "voltage", "text"],
+//             ["Payment Terms", "paymentTerms", "text"],
+//             ["Customer DOD", "custDOD", "date"],
+//             ["Desired DOD", "desiredDOD", "date"],
+//             ["SO Number", "soNo", "text"],
+//             ["Unit Rate (₹)", "unitRate", "number"],
+//             ["Plant", "plant", "text"],
+//           ].map(([label, key, type, options]) => (
+//             <div key={key}>
+//               <label style={{ fontSize: 11, color: T.textMuted, display: "block", marginBottom: 5, fontWeight: 600, letterSpacing: "0.05em" }}>{label.toUpperCase()}</label>
+//               {type === "select" ? (
+//                 <select value={form[key]} onChange={e => set(key, e.target.value)} style={inputStyle}>
+//                   {options.map(o => <option key={o}>{o}</option>)}
+//                 </select>
+//               ) : (
+//                 <input type={type} value={form[key]} onChange={e => set(key, e.target.value)} style={inputStyle} />
+//               )}
+//             </div>
+//           ))}
+//           <div style={{ gridColumn: "1/-1" }}>
+//             <label style={{ fontSize: 11, color: T.textMuted, display: "block", marginBottom: 5, fontWeight: 600, letterSpacing: "0.05em" }}>PRODUCT CATEGORY</label>
+//             <select value={form.category} onChange={e => set("category", e.target.value)} style={inputStyle}>
+//               {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.id} — {c.name}</option>)}
+//             </select>
+//           </div>
+//           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+//             <input type="checkbox" id="ld" checked={form.ldAppl} onChange={e => set("ldAppl", e.target.checked)}
+//               style={{ width: 16, height: 16, cursor: "pointer" }} />
+//             <label htmlFor="ld" style={{ fontSize: 13, cursor: "pointer", fontWeight: 500 }}>LD Applicable</label>
+//           </div>
+//         </div>
+//         <div style={{ display: "flex", gap: 12, marginTop: 26, justifyContent: "flex-end" }}>
+//           <button onClick={onClose}
+//             style={{ padding: "10px 24px", background: T.cardAlt, border: `1px solid ${T.border}`, color: T.textSecondary, borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 13 }}>
+//             Cancel
+//           </button>
+//           <button onClick={() => { if (form.customer && form.poDate && form.custDOD) onSave(form); }}
+//             style={{ padding: "10px 28px", background: T.brand, border: "none", color: "#fff", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13 }}>
+//             Create Order & Generate Plan
+//           </button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
