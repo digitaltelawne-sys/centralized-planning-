@@ -52,17 +52,23 @@ export default function LoginPage() {
       {/* Left panel — branding */}
       <div style={s.left}>
         <div style={s.leftInner}>
-          <div style={s.logo}>
-            <span style={s.logoIcon}>P</span>
-            <div>
-              <div style={s.logoTitle}>PlanTrack Pro</div>
-              <div style={s.logoSub}>Transformer Manufacturing ERP</div>
-            </div>
-          </div>
+  <div style={s.logo}>
+    <img 
+      src="/telawne-logo-high.png" 
+      alt="PlanTrack Logo" 
+      style={s.logoIcon} 
+    />
+
+    {/* <div>
+      <div style={s.logoTitle}>PlanTrack Pro</div>
+      <div style={s.logoSub}>Transformer Manufacturing ERP</div>
+    </div> */}
+  </div>
+{/* </div> */}
 
           <div style={s.tagline}>
             Centralized Planning.<br />
-            <span style={{ color: "#93c5fd" }}>Role-Based Access.</span>
+            <span style={{ color: "#191c1f" }}>Role-Based Access.</span>
           </div>
           <p style={s.desc}>
             Track every stage of your transformer manufacturing pipeline — from
@@ -150,17 +156,17 @@ export default function LoginPage() {
           </form>
 
           {/* Info box */}
-          <div style={s.infoBox}>
+          {/* <div style={s.infoBox}>
             <div style={s.infoTitle}>🔧 How to set up users</div>
             <ol style={s.infoList}>
               <li>Firebase Console → Authentication → Add user</li>
-              <li>Firestore → <code>users</code> collection → doc with <code>uid</code></li>
+              <li>Firestore → <code>users</code> collection → doc with <code>.uid</code></li>
               <li>Add fields: <code>name</code>, <code>role</code>, <code>plant</code></li>
             </ol>
             <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 6 }}>
               Role values: admin · planner · sales · design · purchase · testing · finance · dispatch
             </div>
-          </div>
+          </div> */}
 
           <div style={s.projectBadge}>
             🔗 Project: <strong>centralized-planning</strong>
@@ -180,7 +186,7 @@ const s = {
   },
   left: {
     flex: "0 0 45%",
-    background: "linear-gradient(160deg,#1e3a8a 0%,#1d4ed8 50%,#2563eb 100%)",
+    background: "linear-gradient(100deg, #bbeffc 0%, #86c7e5 50%, #63c5ec 100%)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -189,15 +195,15 @@ const s = {
   leftInner: { maxWidth: 380 },
   logo: { display: "flex", alignItems: "center", gap: 14, marginBottom: 40 },
   logoIcon: {
-    width: 48, height: 48, background: "rgba(255,255,255,0.15)",
+    width: "80%", height: "40%",
     borderRadius: 12, display: "flex", alignItems: "center",
     justifyContent: "center", fontSize: 22, fontWeight: 900,
-    color: "#fff", border: "1px solid rgba(255,255,255,0.25)",
+    color: "#fff", 
   },
   logoTitle: { fontSize: 22, fontWeight: 800, color: "#fff", letterSpacing: "-0.5px" },
   logoSub: { fontSize: 12, color: "rgba(255,255,255,0.6)", marginTop: 2 },
   tagline: { fontSize: 32, fontWeight: 800, color: "#fff", lineHeight: 1.25, marginBottom: 16, letterSpacing: "-0.5px" },
-  desc: { fontSize: 14, color: "rgba(255,255,255,0.7)", lineHeight: 1.7, marginBottom: 32 },
+  desc: { fontSize: 14, color: "rgba(24, 18, 18, 0.7)", lineHeight: 1.7, marginBottom: 32 },
   roleGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 },
   roleChip: {
     background: "rgba(255,255,255,0.08)", border: "1px solid",
@@ -238,7 +244,7 @@ const s = {
   },
   submitBtn: {
     width: "100%", marginTop: 22, padding: "13px",
-    background: "linear-gradient(135deg,#1e40af,#3b82f6)",
+    background: "#207DB0",
     color: "#fff", border: "none", borderRadius: 11,
     fontSize: 15, fontWeight: 700, letterSpacing: "0.02em",
     transition: "all 0.2s",

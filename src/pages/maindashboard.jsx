@@ -422,18 +422,7 @@ export default function App() {
         </div>
 
         {/* User Info */}
-        <div style={{ padding: "14px 16px", borderBottom: `1px solid ${T.border}` }}>
-          <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 5, letterSpacing: "0.08em", fontWeight: 600 }}>LOGGED IN AS</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 28, height: 28, background: T.brandLight, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", color: T.brand, fontWeight: 700 }}>
-              {user?.email?.[0].toUpperCase()}
-            </div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: T.textPrimary }}>{user?.email}</div>
-              <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>{ROLES[role]?.label || role}</div>
-            </div>
-          </div>
-        </div>
+       
 
         {/* Navigation */}
         <nav style={{ flex: 1, padding: "10px 8px" }}>
@@ -462,11 +451,24 @@ export default function App() {
         {/* Logout button */}
         <div style={{ padding: "0 12px" }}>
           <button onClick={handleLogout}
-            style={{ width: "100%", padding: "10px", background: "transparent", border: `1px solid ${T.border}`, color: T.textSecondary, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            style={{ width: "100%", padding: "10px", background: "transparent", border: `1px solid ${T.border}`, color: "#da1616", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
             <span>🚪</span> Logout
           </button>
         </div>
+         <div style={{ padding: "14px 16px", borderBottom: `1px solid ${T.border}` }}>
+          <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 5, letterSpacing: "0.08em", fontWeight: 600 }}>LOGGED IN AS</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 28, height: 28, background: T.brandLight, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", color: T.brand, fontWeight: 700 }}>
+              {user?.email?.[0].toUpperCase()}
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: T.textPrimary }}>{user?.email}</div>
+              <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>{ROLES[role]?.label || role}</div>
+            </div>
+          </div>
+        </div>
       </div>
+      
 
       {/* ── MAIN ── */}
       <div style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column" }}>
@@ -486,7 +488,7 @@ export default function App() {
           </div>
         </div>
 
-        <div style={{ flex: 1, padding: 28, overflow: "auto" }}>
+        <div style={{ flex: 1, padding: 15, overflow: "auto" }}>
 
           {/* ── DASHBOARD ── */}
           {view === "dashboard" && (
@@ -553,7 +555,7 @@ export default function App() {
               </div>
 
               {/* Top Alerts */}
-              <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "hidden" }}>
+              <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "auto", maxHeight: "220px" }}>
                 <div style={{ padding: "16px 22px", borderBottom: `1px solid ${T.border}` }}>
                   <div style={{ fontWeight: 700, fontSize: 14 }}>🔔 Top Alerts</div>
                 </div>
@@ -885,12 +887,12 @@ function WorkflowView({ order, onBack, myDepts, role, today, onUpdateActual, onU
   return (
     <div>
       <button onClick={onBack}
-        style={{ background: T.card, border: `1px solid ${T.border}`, color: T.textSecondary, padding: "7px 16px", borderRadius: 8, cursor: "pointer", marginBottom: 20, fontSize: 13, fontWeight: 600 }}>
+        style={{ background: T.card, border: `1px solid ${T.border}`, color: T.textSecondary, padding: "5px 15px", borderRadius: 8, cursor: "pointer", marginBottom: 20, fontSize: 13, fontWeight: 600 }}>
         ← Back
       </button>
 
       {/* Order Header */}
-      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 22, marginBottom: 20 }}>
+      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 12, marginBottom: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
           <div>
             <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>{order.customer}</div>
@@ -934,10 +936,10 @@ function WorkflowView({ order, onBack, myDepts, role, today, onUpdateActual, onU
       </div>
 
       {/* Stage Table */}
-      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "auto" }}>
+      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "auto", maxHeight: "280px" }}>
         <div style={{ padding: "14px 22px", borderBottom: `1px solid ${T.border}`, fontWeight: 700, fontSize: 14 }}>Stage-wise Workflow</div>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-          <thead>
+         <thead style={{ position: "sticky", top: 0, zIndex: 2 }}>
             <tr style={{ background: T.tableHead }}>
               {["Stage", "Department", "Milestone", "Plan Date", "Actual Date", "Days Diff", "Status", "Action"].map(h => (
                 <th key={h} style={{ padding: "10px 14px", textAlign: "left", color: T.textMuted, fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", letterSpacing: "0.05em" }}>{h}</th>
