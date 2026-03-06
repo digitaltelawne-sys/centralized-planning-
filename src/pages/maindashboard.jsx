@@ -322,7 +322,7 @@ export default function App() {
     return true;
   }), [ordersWithDates, filterStatus, searchQ]);
 
-const myAlerts = alerts.filter(a => myDepts.includes(a.dept));
+const myAlerts = alerts;
   const stats = useMemo(() => ({
     total: orders.length,
     wip: orders.filter(o => o.status === "WIP").length,
