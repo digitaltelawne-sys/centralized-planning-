@@ -3,7 +3,9 @@ import { useAuth } from "../authContext";
 import { auth } from "../firebase";
 import { useNavigate } from "react-router-dom";
 import NewOrderModal from "./planer/orderform";
-
+import { STAGES, DEPT_COLORS, T } from "../constant";
+import { daysDiff } from "../utils";
+import WorkflowView from "./planer/WorkflowView";
 // ─── DATA FROM EXCEL ──────────────────────────────────────────────────────────
 const CATEGORIES = [
   { id: "IDT-RPT-STD-3W", name: "IDT Repeat Standard 3 winding" },
@@ -43,41 +45,41 @@ const CATEGORIES = [
   { id: "DOM-CSS-Dry-CRT-Non Std", name: "Domestic Drytype CSS CRT Non Standard Completely New Fresh Design" }
 ];
 
-const STAGES = [
-  { id: "P1", dept: "Planner", label: "Communication by Planner", ref: "PO" },
-  { id: "P2", dept: "Sales", label: "Order Acknowledgement", ref: "PO" },
-  { id: "P3", dept: "Sales", label: "Client Approval (OA)", ref: "OA" },
-  { id: "P4", dept: "Sales", label: "SOC Entry", ref: "PO" },
-  { id: "P5", dept: "Sales", label: "SOT Entry", ref: "PO" },
-  { id: "P6", dept: "Planner", label: "*Internal KO-1 (In. Commu+Days)", ref: "P1" },
-  { id: "P7", dept: "Design", label: "Adv. Material to Purchase", ref: "P6" },
-  { id: "P8", dept: "Sales", label: "*External KO-2 (Int KO+Days)", ref: "P6" },
-  { id: "P9", dept: "Sales", label: "Proforma Invoice", ref: "OA" },
-  { id: "P10", dept: "Finance & Sales", label: "ABG Draft Approval", ref: "P1" },
-  { id: "P11", dept: "Finance", label: "BG Submission", ref: "P10" },
-  { id: "P12", dept: "Design", label: "Drawing Commitment Date", ref: "P6" },
-  { id: "P13", dept: "QC & Testing", label: "QAP Preparation", ref: "P8" },
-  { id: "P14", dept: "Sales", label: "Advance Payment", ref: "P11" },
-  { id: "P15", dept: "Sales", label: "Drawing Approval", ref: "P12" },
-  { id: "P16", dept: "Sales", label: "MFC", ref: "P15" },
-  { id: "P17", dept: "Planner", label: "Launch Meeting", ref: "MFC" },
-  { id: "P18", dept: "Design", label: "BOM Release", ref: "MFC" },
-  { id: "P19", dept: "Purchase", label: "LV Winding Kit Commit", ref: "P18" },
-  { id: "P20", dept: "Purchase", label: "HV Winding Kit Commit", ref: "P18" },
-  { id: "P21", dept: "Purchase", label: "CA Kit Commitment", ref: "P18" },
-  { id: "P22", dept: "Purchase", label: "CCA Kit Commitment", ref: "P18" },
-  { id: "P23", dept: "Purchase", label: "Tank Commitment", ref: "P18" },
-  { id: "P24", dept: "Purchase", label: "Finishing Kit Commit", ref: "P18" },
-  { id: "P25", dept: "Testing", label: "Final Testing Internal", ref: "P21" },
-  { id: "P26", dept: "Testing", label: "Customer FAT", ref: "P25" },
-  { id: "P27", dept: "Quality", label: "Compliance", ref: "P26" },
-  { id: "P28", dept: "Sales", label: "MDCC", ref: "P27" },
-  { id: "P29", dept: "QA", label: "Internal / Final DI", ref: "P27" },
-  { id: "P30", dept: "Sales", label: "Payment Received", ref: "P28" },
-  { id: "P31", dept: "Dispatch", label: "Ready for Dispatch", ref: "P28" },
-  { id: "P32", dept: "Finance", label: "Actual Dispatch / Billing", ref: "P31" },
-  { id: "P33", dept: "Planning", label: "Ex-Works", ref: "P32" }
-];
+// const STAGES = [
+//   { id: "P1", dept: "Planner", label: "Communication by Planner", ref: "PO" },
+//   { id: "P2", dept: "Sales", label: "Order Acknowledgement", ref: "PO" },
+//   { id: "P3", dept: "Sales", label: "Client Approval (OA)", ref: "OA" },
+//   { id: "P4", dept: "Sales", label: "SOC Entry", ref: "PO" },
+//   { id: "P5", dept: "Sales", label: "SOT Entry", ref: "PO" },
+//   { id: "P6", dept: "Planner", label: "*Internal KO-1 (In. Commu+Days)", ref: "P1" },
+//   { id: "P7", dept: "Design", label: "Adv. Material to Purchase", ref: "P6" },
+//   { id: "P8", dept: "Sales", label: "*External KO-2 (Int KO+Days)", ref: "P6" },
+//   { id: "P9", dept: "Sales", label: "Proforma Invoice", ref: "OA" },
+//   { id: "P10", dept: "Finance & Sales", label: "ABG Draft Approval", ref: "P1" },
+//   { id: "P11", dept: "Finance", label: "BG Submission", ref: "P10" },
+//   { id: "P12", dept: "Design", label: "Drawing Commitment Date", ref: "P6" },
+//   { id: "P13", dept: "QC & Testing", label: "QAP Preparation", ref: "P8" },
+//   { id: "P14", dept: "Sales", label: "Advance Payment", ref: "P11" },
+//   { id: "P15", dept: "Sales", label: "Drawing Approval", ref: "P12" },
+//   { id: "P16", dept: "Sales", label: "MFC", ref: "P15" },
+//   { id: "P17", dept: "Planner", label: "Launch Meeting", ref: "MFC" },
+//   { id: "P18", dept: "Design", label: "BOM Release", ref: "MFC" },
+//   { id: "P19", dept: "Purchase", label: "LV Winding Kit Commit", ref: "P18" },
+//   { id: "P20", dept: "Purchase", label: "HV Winding Kit Commit", ref: "P18" },
+//   { id: "P21", dept: "Purchase", label: "CA Kit Commitment", ref: "P18" },
+//   { id: "P22", dept: "Purchase", label: "CCA Kit Commitment", ref: "P18" },
+//   { id: "P23", dept: "Purchase", label: "Tank Commitment", ref: "P18" },
+//   { id: "P24", dept: "Purchase", label: "Finishing Kit Commit", ref: "P18" },
+//   { id: "P25", dept: "Testing", label: "Final Testing Internal", ref: "P21" },
+//   { id: "P26", dept: "Testing", label: "Customer FAT", ref: "P25" },
+//   { id: "P27", dept: "Quality", label: "Compliance", ref: "P26" },
+//   { id: "P28", dept: "Sales", label: "MDCC", ref: "P27" },
+//   { id: "P29", dept: "QA", label: "Internal / Final DI", ref: "P27" },
+//   { id: "P30", dept: "Sales", label: "Payment Received", ref: "P28" },
+//   { id: "P31", dept: "Dispatch", label: "Ready for Dispatch", ref: "P28" },
+//   { id: "P32", dept: "Finance", label: "Actual Dispatch / Billing", ref: "P31" },
+//   { id: "P33", dept: "Planning", label: "Ex-Works", ref: "P32" }
+// ];
 
 const GALAXY_DATA = {
   "IDT-RPT-STD-3W": [1,2,5,2,2,1,2,1,0,1,3,4,3,5,5,1,2,7,25,25,36,36,35,35,18,2,2,5,6,2,3,0,0],
@@ -130,10 +132,10 @@ function addDays(dateStr, days) {
   return d.toISOString().split("T")[0];
 }
 
-function daysDiff(d1, d2) {
-  if (!d1 || !d2) return null;
-  return Math.round((new Date(d2) - new Date(d1)) / 86400000);
-}
+// function daysDiff(d1, d2) {
+//   if (!d1 || !d2) return null;
+//   return Math.round((new Date(d2) - new Date(d1)) / 86400000);
+// }
 
 function computePlanDates(poDate, category) {
   if (!poDate) return {};
@@ -190,21 +192,21 @@ function getPlanDates(order) {
   return computed;
 }
 
-const DEPT_COLORS = {
-  "Planner": "#2563eb",
-  "Sales": "#059669",
-  "Design": "#7c3aed",
-  "Finance": "#d97706",
-  "Finance & Sales": "#d97706",
-  "Purchase": "#dc2626",
-  "Testing": "#0891b2",
-  "QC & Testing": "#0891b2",
-  "Quality": "#65a30d",
-  "QA": "#65a30d",
-  "Dispatch": "#ea580c",
-  "Planning": "#2563eb",
-  "Operations": "#4b5563",
-};
+// const DEPT_COLORS = {
+//   "Planner": "#2563eb",
+//   "Sales": "#059669",
+//   "Design": "#7c3aed",
+//   "Finance": "#d97706",
+//   "Finance & Sales": "#d97706",
+//   "Purchase": "#dc2626",
+//   "Testing": "#0891b2",
+//   "QC & Testing": "#0891b2",
+//   "Quality": "#65a30d",
+//   "QA": "#65a30d",
+//   "Dispatch": "#ea580c",
+//   "Planning": "#2563eb",
+//   "Operations": "#4b5563",
+// };
 
 const ROLES = {
   admin: { label: "Planner(Admin)", depts: Object.keys(DEPT_COLORS) },
@@ -233,38 +235,38 @@ const SAMPLE_ORDERS = [
 ];
 
 // ── THEME ─────────────────────────────────────────────────────────────────────
-const T = {
-  // Backgrounds
-  pageBg:    "#f4f6f9",
-  sidebar:   "#ffffff",
-  card:      "#ffffff",
-  cardAlt:   "#f8fafc",
-  tableHead: "#f1f5f9",
-  tableRow:  "#ffffff",
-  tableRowAlt: "#f8fafc",
-  tableRowDone: "#f0fdf4",
-  tableRowOverdue: "#fff5f5",
-  inputBg:   "#f8fafc",
-  // Borders
-  border:    "#e2e8f0",
-  borderMid: "#cbd5e1",
-  // Text
-  textPrimary: "#0f172a",
-  textSecondary: "#475569",
-  textMuted: "#94a3b8",
-  // Brand
-  brand:     "#1e40af",
-  brandLight:"#dbeafe",
-  // Status
-  success:   "#16a34a",
-  successBg: "#dcfce7",
-  danger:    "#dc2626",
-  dangerBg:  "#fee2e2",
-  warning:   "#d97706",
-  warningBg: "#fef3c7",
-  info:      "#0284c7",
-  infoBg:    "#e0f2fe",
-};
+// const T = {
+//   // Backgrounds
+//   pageBg:    "#f4f6f9",
+//   sidebar:   "#ffffff",
+//   card:      "#ffffff",
+//   cardAlt:   "#f8fafc",
+//   tableHead: "#f1f5f9",
+//   tableRow:  "#ffffff",
+//   tableRowAlt: "#f8fafc",
+//   tableRowDone: "#f0fdf4",
+//   tableRowOverdue: "#fff5f5",
+//   inputBg:   "#f8fafc",
+//   // Borders
+//   border:    "#e2e8f0",
+//   borderMid: "#cbd5e1",
+//   // Text
+//   textPrimary: "#0f172a",
+//   textSecondary: "#475569",
+//   textMuted: "#94a3b8",
+//   // Brand
+//   brand:     "#1e40af",
+//   brandLight:"#dbeafe",
+//   // Status
+//   success:   "#16a34a",
+//   successBg: "#dcfce7",
+//   danger:    "#dc2626",
+//   dangerBg:  "#fee2e2",
+//   warning:   "#d97706",
+//   warningBg: "#fef3c7",
+//   info:      "#0284c7",
+//   infoBg:    "#e0f2fe",
+// };
 
 export default function App() {
   const { user, role } = useAuth();
@@ -871,194 +873,194 @@ const myAlerts = alerts;
 }
 
 // ─── WORKFLOW VIEW (updated) ──────────────────────────────────────────────────
-function WorkflowView({ order, onBack, myDepts, role, today, onUpdateActual, onUpdatePlan }) {
-  const [editingActual, setEditingActual] = useState(null);
-  const [actualDateVal, setActualDateVal] = useState("");
-  const [editingPlan, setEditingPlan] = useState(null);       // for plan editing
-  const [planDateVal, setPlanDateVal] = useState("");
+// function WorkflowView({ order, onBack, myDepts, role, today, onUpdateActual, onUpdatePlan }) {
+//   const [editingActual, setEditingActual] = useState(null);
+//   const [actualDateVal, setActualDateVal] = useState("");
+//   const [editingPlan, setEditingPlan] = useState(null);       // for plan editing
+//   const [planDateVal, setPlanDateVal] = useState("");
 
-  const canEdit = (dept) => role === "admin" || myDepts.includes(dept);
+//   const canEdit = (dept) => role === "admin" || myDepts.includes(dept);
 
-  const completedCount = STAGES.filter(s => order.actuals[s.id]).length;
-  const progress = Math.round((completedCount / STAGES.length) * 100);
-  const rfdPlan = order.plan.RFD;
-  const isLate = rfdPlan && order.custDOD && rfdPlan > order.custDOD;
+//   const completedCount = STAGES.filter(s => order.actuals[s.id]).length;
+//   const progress = Math.round((completedCount / STAGES.length) * 100);
+//   const rfdPlan = order.plan.RFD;
+//   const isLate = rfdPlan && order.custDOD && rfdPlan > order.custDOD;
 
-  return (
-    <div>
-      <button onClick={onBack}
-        style={{ background: T.card, border: `1px solid ${T.border}`, color: T.textSecondary, padding: "5px 15px", borderRadius: 8, cursor: "pointer", marginBottom: 20, fontSize: 13, fontWeight: 600 }}>
-        ← Back
-      </button>
+//   return (
+//     <div>
+//       <button onClick={onBack}
+//         style={{ background: T.card, border: `1px solid ${T.border}`, color: T.textSecondary, padding: "5px 15px", borderRadius: 8, cursor: "pointer", marginBottom: 20, fontSize: 13, fontWeight: 600 }}>
+//         ← Back
+//       </button>
 
-      {/* Order Header */}
-      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 12, marginBottom: 20 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
-          <div>
-            <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>{order.customer}</div>
-            <div style={{ fontSize: 13, color: T.textMuted }}>{order.id} · {order.category} · {order.type} · {order.region}</div>
-            <div style={{ fontSize: 13, color: T.textMuted, marginTop: 3 }}>SO: {order.soNo} · Rating: {order.rating} KVA · Voltage: {order.voltage}</div>
-          </div>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 2 }}>Customer DOD</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: isLate ? T.danger : T.success }}>{order.custDOD}</div>
-            <div style={{ fontSize: 12, color: T.textMuted, marginTop: 4 }}>
-              RFD Plan: <span style={{ color: isLate ? T.danger : T.success, fontWeight: 700 }}>{rfdPlan || "—"}</span>
-            </div>
-          </div>
-        </div>
-        {/* Progress */}
-        <div style={{ marginTop: 18 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: T.textMuted, marginBottom: 6 }}>
-            <span style={{ fontWeight: 600 }}>Workflow Progress</span>
-            <span>{completedCount}/{STAGES.length} stages · {progress}%</span>
-          </div>
-          <div style={{ background: T.border, borderRadius: 8, height: 8 }}>
-            <div style={{ background: `linear-gradient(90deg,#2563eb,#16a34a)`, borderRadius: 8, height: "100%", width: `${progress}%`, transition: "width 0.5s" }} />
-          </div>
-        </div>
-        {/* Key dates */}
-        <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
-          {[
-            { label: "PO Date",   val: order.poDate },
-            { label: "MFC Plan",  val: order.plan.MFC },
-            { label: "BOM Plan",  val: order.plan.BOM },
-            { label: "MDCC Plan", val: order.plan.MDCC },
-            { label: "RFD Plan",  val: order.plan.RFD },
-            { label: "RFD Actual",val: order.actuals?.P31 },
-          ].map(k => (
-            <div key={k.label} style={{ background: T.cardAlt, border: `1px solid ${T.border}`, borderRadius: 8, padding: "9px 14px", minWidth: 115 }}>
-              <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 3, fontWeight: 600, letterSpacing: "0.05em" }}>{k.label.toUpperCase()}</div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: k.val ? T.textPrimary : T.textMuted }}>{k.val || "—"}</div>
-            </div>
-          ))}
-        </div>
-      </div>
+//       {/* Order Header */}
+//       <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 12, marginBottom: 20 }}>
+//         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+//           <div>
+//             <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>{order.customer}</div>
+//             <div style={{ fontSize: 13, color: T.textMuted }}>{order.id} · {order.category} · {order.type} · {order.region}</div>
+//             <div style={{ fontSize: 13, color: T.textMuted, marginTop: 3 }}>SO: {order.soNo} · Rating: {order.rating} KVA · Voltage: {order.voltage}</div>
+//           </div>
+//           <div style={{ textAlign: "right" }}>
+//             <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 2 }}>Customer DOD</div>
+//             <div style={{ fontSize: 20, fontWeight: 800, color: isLate ? T.danger : T.success }}>{order.custDOD}</div>
+//             <div style={{ fontSize: 12, color: T.textMuted, marginTop: 4 }}>
+//               RFD Plan: <span style={{ color: isLate ? T.danger : T.success, fontWeight: 700 }}>{rfdPlan || "—"}</span>
+//             </div>
+//           </div>
+//         </div>
+//         {/* Progress */}
+//         <div style={{ marginTop: 18 }}>
+//           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: T.textMuted, marginBottom: 6 }}>
+//             <span style={{ fontWeight: 600 }}>Workflow Progress</span>
+//             <span>{completedCount}/{STAGES.length} stages · {progress}%</span>
+//           </div>
+//           <div style={{ background: T.border, borderRadius: 8, height: 8 }}>
+//             <div style={{ background: `linear-gradient(90deg,#2563eb,#16a34a)`, borderRadius: 8, height: "100%", width: `${progress}%`, transition: "width 0.5s" }} />
+//           </div>
+//         </div>
+//         {/* Key dates */}
+//         <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
+//           {[
+//             { label: "PO Date",   val: order.poDate },
+//             { label: "MFC Plan",  val: order.plan.MFC },
+//             { label: "BOM Plan",  val: order.plan.BOM },
+//             { label: "MDCC Plan", val: order.plan.MDCC },
+//             { label: "RFD Plan",  val: order.plan.RFD },
+//             { label: "RFD Actual",val: order.actuals?.P31 },
+//           ].map(k => (
+//             <div key={k.label} style={{ background: T.cardAlt, border: `1px solid ${T.border}`, borderRadius: 8, padding: "9px 14px", minWidth: 115 }}>
+//               <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 3, fontWeight: 600, letterSpacing: "0.05em" }}>{k.label.toUpperCase()}</div>
+//               <div style={{ fontSize: 13, fontWeight: 700, color: k.val ? T.textPrimary : T.textMuted }}>{k.val || "—"}</div>
+//             </div>
+//           ))}
+//         </div>
+//       </div>
 
-      {/* Stage Table */}
-      <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "auto", maxHeight: "280px" }}>
-        <div style={{ padding: "14px 22px", borderBottom: `1px solid ${T.border}`, fontWeight: 700, fontSize: 14 }}>Stage-wise Workflow</div>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-         <thead style={{ position: "sticky", top: 0, zIndex: 2 }}>
-            <tr style={{ background: T.tableHead }}>
-              {["Stage", "Department", "Milestone", "Plan Date", "Actual Date", "Days Diff", "Status", "Action"].map(h => (
-                <th key={h} style={{ padding: "10px 14px", textAlign: "left", color: T.textMuted, fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", letterSpacing: "0.05em" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {STAGES.map((s, i) => {
-              const planDate = order.plan[s.id];
-              const actual = order.actuals[s.id];
-              const diff = actual && planDate ? daysDiff(planDate, actual) : null;
-              const isOverdue = !actual && planDate && planDate < today;
-              const done = !!actual;
-              const editable = canEdit(s.dept);
-              const dc = DEPT_COLORS[s.dept] || "#6b7280";
+//       {/* Stage Table */}
+//       <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, overflow: "auto", maxHeight: "280px" }}>
+//         <div style={{ padding: "14px 22px", borderBottom: `1px solid ${T.border}`, fontWeight: 700, fontSize: 14 }}>Stage-wise Workflow</div>
+//         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+//          <thead style={{ position: "sticky", top: 0, zIndex: 2 }}>
+//             <tr style={{ background: T.tableHead }}>
+//               {["Stage", "Department", "Milestone", "Plan Date", "Actual Date", "Days Diff", "Status", "Action"].map(h => (
+//                 <th key={h} style={{ padding: "10px 14px", textAlign: "left", color: T.textMuted, fontSize: 11, fontWeight: 600, whiteSpace: "nowrap", letterSpacing: "0.05em" }}>{h}</th>
+//               ))}
+//             </tr>
+//           </thead>
+//           <tbody>
+//             {STAGES.map((s, i) => {
+//               const planDate = order.plan[s.id];
+//               const actual = order.actuals[s.id];
+//               const diff = actual && planDate ? daysDiff(planDate, actual) : null;
+//               const isOverdue = !actual && planDate && planDate < today;
+//               const done = !!actual;
+//               const editable = canEdit(s.dept);
+//               const dc = DEPT_COLORS[s.dept] || "#6b7280";
 
-              return (
-                <tr key={s.id} style={{ borderBottom: `1px solid ${T.border}`,
-                  background: done ? "#f0fdf4" : isOverdue ? "#fff5f5" : i % 2 === 0 ? T.tableRow : T.tableRowAlt }}>
+//               return (
+//                 <tr key={s.id} style={{ borderBottom: `1px solid ${T.border}`,
+//                   background: done ? "#f0fdf4" : isOverdue ? "#fff5f5" : i % 2 === 0 ? T.tableRow : T.tableRowAlt }}>
                   
-                  <td style={{ padding: "9px 14px", fontWeight: 700, color: T.textMuted, fontSize: 12 }}>{s.id}</td>
-                  <td style={{ padding: "9px 14px" }}>
-                    <span style={{ background: `${dc}15`, color: dc, padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600 }}>{s.dept}</span>
-                  </td>
-                  <td style={{ padding: "9px 14px", fontWeight: 500 }}>{s.label}</td>
+//                   <td style={{ padding: "9px 14px", fontWeight: 700, color: T.textMuted, fontSize: 12 }}>{s.id}</td>
+//                   <td style={{ padding: "9px 14px" }}>
+//                     <span style={{ background: `${dc}15`, color: dc, padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600 }}>{s.dept}</span>
+//                   </td>
+//                   <td style={{ padding: "9px 14px", fontWeight: 500 }}>{s.label}</td>
 
-                  {/* Plan Date column – now editable for P17 */}
-                  <td style={{ padding: "9px 14px", color: planDate ? T.textSecondary : T.textMuted }}>
-                    {planDate || "—"}
-                    {editable && s.id === "P17" && editingPlan !== s.id && (
-                      <button
-                        onClick={() => { setEditingPlan(s.id); setPlanDateVal(planDate || ""); }}
-                        style={{ marginLeft: 8, background: T.brandLight, border: "none", color: T.brand, padding: "2px 6px", borderRadius: 4, cursor: "pointer", fontSize: 10 }}
-                        title="Edit plan date"
-                      >
-                        ✎
-                      </button>
-                    )}
-                    {editingPlan === s.id && (
-                      <div style={{ display: "inline-flex", gap: 4, marginLeft: 8 }}>
-                        <input
-                          type="date"
-                          value={planDateVal}
-                          onChange={e => setPlanDateVal(e.target.value)}
-                          style={{ width: 130, background: T.inputBg, border: `1px solid ${T.brand}`, color: T.textPrimary, padding: "2px 4px", borderRadius: 4, fontSize: 11 }}
-                        />
-                        <button
-                          onClick={() => { onUpdatePlan(order.id, s.id, planDateVal); setEditingPlan(null); }}
-                          style={{ background: T.success, border: "none", color: "#fff", padding: "2px 6px", borderRadius: 4, cursor: "pointer", fontSize: 10 }}
-                        >
-                          ✓
-                        </button>
-                        <button
-                          onClick={() => setEditingPlan(null)}
-                          style={{ background: T.cardAlt, border: `1px solid ${T.border}`, color: T.textSecondary, padding: "2px 6px", borderRadius: 4, cursor: "pointer", fontSize: 10 }}
-                        >
-                          ✗
-                        </button>
-                      </div>
-                    )}
-                  </td>
+//                   {/* Plan Date column – now editable for P17 */}
+//                   <td style={{ padding: "9px 14px", color: planDate ? T.textSecondary : T.textMuted }}>
+//                     {planDate || "—"}
+//                     {editable && s.id === "P17" && editingPlan !== s.id && (
+//                       <button
+//                         onClick={() => { setEditingPlan(s.id); setPlanDateVal(planDate || ""); }}
+//                         style={{ marginLeft: 8, background: T.brandLight, border: "none", color: T.brand, padding: "2px 6px", borderRadius: 4, cursor: "pointer", fontSize: 10 }}
+//                         title="Edit plan date"
+//                       >
+//                         ✎
+//                       </button>
+//                     )}
+//                     {editingPlan === s.id && (
+//                       <div style={{ display: "inline-flex", gap: 4, marginLeft: 8 }}>
+//                         <input
+//                           type="date"
+//                           value={planDateVal}
+//                           onChange={e => setPlanDateVal(e.target.value)}
+//                           style={{ width: 130, background: T.inputBg, border: `1px solid ${T.brand}`, color: T.textPrimary, padding: "2px 4px", borderRadius: 4, fontSize: 11 }}
+//                         />
+//                         <button
+//                           onClick={() => { onUpdatePlan(order.id, s.id, planDateVal); setEditingPlan(null); }}
+//                           style={{ background: T.success, border: "none", color: "#fff", padding: "2px 6px", borderRadius: 4, cursor: "pointer", fontSize: 10 }}
+//                         >
+//                           ✓
+//                         </button>
+//                         <button
+//                           onClick={() => setEditingPlan(null)}
+//                           style={{ background: T.cardAlt, border: `1px solid ${T.border}`, color: T.textSecondary, padding: "2px 6px", borderRadius: 4, cursor: "pointer", fontSize: 10 }}
+//                         >
+//                           ✗
+//                         </button>
+//                       </div>
+//                     )}
+//                   </td>
 
-                  {/* Actual Date column */}
-                  <td style={{ padding: "9px 14px" }}>
-                    {editingActual === s.id ? (
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <input type="date" value={actualDateVal} onChange={e => setActualDateVal(e.target.value)}
-                          style={{ background: T.inputBg, border: `1px solid ${T.brand}`, color: T.textPrimary, padding: "4px 8px", borderRadius: 6, fontSize: 12 }} />
-                        <button onClick={() => { onUpdateActual(order.id, s.id, actualDateVal); setEditingActual(null); }}
-                          style={{ background: T.success, border: "none", color: "#fff", padding: "4px 10px", borderRadius: 5, cursor: "pointer", fontSize: 12, fontWeight: 700 }}>✓</button>
-                        <button onClick={() => setEditingActual(null)}
-                          style={{ background: T.cardAlt, border: `1px solid ${T.border}`, color: T.textSecondary, padding: "4px 10px", borderRadius: 5, cursor: "pointer", fontSize: 12 }}>✗</button>
-                      </div>
-                    ) : (
-                      <span style={{ color: done ? T.success : T.textMuted, fontWeight: done ? 600 : 400 }}>{actual || "Pending"}</span>
-                    )}
-                  </td>
+//                   {/* Actual Date column */}
+//                   <td style={{ padding: "9px 14px" }}>
+//                     {editingActual === s.id ? (
+//                       <div style={{ display: "flex", gap: 6 }}>
+//                         <input type="date" value={actualDateVal} onChange={e => setActualDateVal(e.target.value)}
+//                           style={{ background: T.inputBg, border: `1px solid ${T.brand}`, color: T.textPrimary, padding: "4px 8px", borderRadius: 6, fontSize: 12 }} />
+//                         <button onClick={() => { onUpdateActual(order.id, s.id, actualDateVal); setEditingActual(null); }}
+//                           style={{ background: T.success, border: "none", color: "#fff", padding: "4px 10px", borderRadius: 5, cursor: "pointer", fontSize: 12, fontWeight: 700 }}>✓</button>
+//                         <button onClick={() => setEditingActual(null)}
+//                           style={{ background: T.cardAlt, border: `1px solid ${T.border}`, color: T.textSecondary, padding: "4px 10px", borderRadius: 5, cursor: "pointer", fontSize: 12 }}>✗</button>
+//                       </div>
+//                     ) : (
+//                       <span style={{ color: done ? T.success : T.textMuted, fontWeight: done ? 600 : 400 }}>{actual || "Pending"}</span>
+//                     )}
+//                   </td>
 
-                  <td style={{ padding: "9px 14px" }}>
-                    {diff !== null && (
-                      <span style={{ color: diff > 0 ? T.danger : diff < 0 ? T.success : T.textMuted, fontWeight: 700, fontSize: 12 }}>
-                        {diff > 0 ? `+${diff}d` : diff < 0 ? `${diff}d` : "On time"}
-                      </span>
-                    )}
-                  </td>
+//                   <td style={{ padding: "9px 14px" }}>
+//                     {diff !== null && (
+//                       <span style={{ color: diff > 0 ? T.danger : diff < 0 ? T.success : T.textMuted, fontWeight: 700, fontSize: 12 }}>
+//                         {diff > 0 ? `+${diff}d` : diff < 0 ? `${diff}d` : "On time"}
+//                       </span>
+//                     )}
+//                   </td>
 
-                  <td style={{ padding: "9px 14px" }}>
-                    {done
-                      ? <span style={{ color: T.success, fontSize: 11, fontWeight: 700, background: T.successBg, padding: "2px 8px", borderRadius: 20 }}>✅ DONE</span>
-                      : isOverdue
-                        ? <span style={{ color: T.danger, fontSize: 11, fontWeight: 700, background: T.dangerBg, padding: "2px 8px", borderRadius: 20 }}>⚠ OVERDUE</span>
-                        : planDate
-                          ? <span style={{ color: T.warning, fontSize: 11, fontWeight: 700, background: T.warningBg, padding: "2px 8px", borderRadius: 20 }}>🕐 PENDING</span>
-                          : <span style={{ color: T.textMuted, fontSize: 11 }}>—</span>}
-                  </td>
+//                   <td style={{ padding: "9px 14px" }}>
+//                     {done
+//                       ? <span style={{ color: T.success, fontSize: 11, fontWeight: 700, background: T.successBg, padding: "2px 8px", borderRadius: 20 }}>✅ DONE</span>
+//                       : isOverdue
+//                         ? <span style={{ color: T.danger, fontSize: 11, fontWeight: 700, background: T.dangerBg, padding: "2px 8px", borderRadius: 20 }}>⚠ OVERDUE</span>
+//                         : planDate
+//                           ? <span style={{ color: T.warning, fontSize: 11, fontWeight: 700, background: T.warningBg, padding: "2px 8px", borderRadius: 20 }}>🕐 PENDING</span>
+//                           : <span style={{ color: T.textMuted, fontSize: 11 }}>—</span>}
+//                   </td>
 
-                  <td style={{ padding: "9px 14px" }}>
-                    {editable && !done && (
-                      <button onClick={() => { setEditingActual(s.id); setActualDateVal(today); }}
-                        style={{ background: T.brandLight, border: "none", color: T.brand, padding: "4px 12px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
-                        Enter Actual
-                      </button>
-                    )}
-                    {done && editable && (
-                      <button onClick={() => { setEditingActual(s.id); setActualDateVal(actual); }}
-                        style={{ background: T.cardAlt, border: `1px solid ${T.borderMid}`, color: T.textSecondary, padding: "4px 12px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
-                        Edit
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
+//                   <td style={{ padding: "9px 14px" }}>
+//                     {editable && !done && (
+//                       <button onClick={() => { setEditingActual(s.id); setActualDateVal(today); }}
+//                         style={{ background: T.brandLight, border: "none", color: T.brand, padding: "4px 12px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
+//                         Enter Actual
+//                       </button>
+//                     )}
+//                     {done && editable && (
+//                       <button onClick={() => { setEditingActual(s.id); setActualDateVal(actual); }}
+//                         style={{ background: T.cardAlt, border: `1px solid ${T.borderMid}`, color: T.textSecondary, padding: "4px 12px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
+//                         Edit
+//                       </button>
+//                     )}
+//                   </td>
+//                 </tr>
+//               );
+//             })}
+//           </tbody>
+//         </table>
+//       </div>
+//     </div>
+//   );
+// }
 
 // ─── NEW ORDER MODAL ──────────────────────────────────────────────────────────
 // function NewOrderModal({ onClose, onSave }) {
