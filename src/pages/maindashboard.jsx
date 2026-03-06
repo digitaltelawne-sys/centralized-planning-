@@ -380,7 +380,8 @@ const myAlerts = alerts;
   const navItems = [
     { id: "dashboard",  icon: "▦",  label: "Dashboard" },
     { id: "orders",     icon: "≡",  label: "All Orders" },
-    { id: "workflow",   icon: "⇄",  label: "Workflow Tracker" },
+    // { id: "workflow",   icon: "⇄",  label: "Workflow Tracker" },
+    ...(role !== "admin" ? [{ id: "workflow",   icon: "⇄",  label: "Workflow Tracker" }] : []),
     { id: "alerts",     icon: "◉",  label: `Alerts (${myAlerts.length})` },
     { id: "rfd",        icon: "⬆",  label: "RFD Tracker" },
     { id: "department", icon: "⬡",  label: "Dept. View" },
@@ -442,13 +443,16 @@ const myAlerts = alerts;
           ))}
         </nav>
 
-        {/* New Order button */}
-        <div style={{ padding: "0 12px", marginBottom: "10px" }}>
-          <button onClick={() => setShowNewOrder(true)}
-            style={{ width: "100%", padding: "10px", background: T.brand, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", letterSpacing: "0.02em" }}>
-            + New Order
-          </button>
-        </div>
+       
+        {/* New Order button - hide for admin */}
+{role !== "admin" && (
+  <div style={{ padding: "0 12px", marginBottom: "10px" }}>
+    <button onClick={() => setShowNewOrder(true)}
+      style={{ width: "100%", padding: "10px", background: T.brand, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", letterSpacing: "0.02em" }}>
+      + New Order
+    </button>
+  </div>
+)}
 
         {/* Logout button */}
         <div style={{ padding: "0 12px" }}>
